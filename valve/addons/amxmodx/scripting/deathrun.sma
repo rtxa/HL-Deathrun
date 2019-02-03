@@ -2,13 +2,12 @@
 * Half-Life Deathrun by rtxa
 *
 * To do:
-*	Restart func_door_rotating, func_breakeable, etc...
-*	Change values of weapons of game_player_equip to half life counterpart
+*	Restart func_door_rotating, func_breakeable, etc... Requires modify gamedll
 */
 
 #include <amxmodx>
 #include <amxmisc>
-#include <hl>
+#include <hlstocks>
 #include <engine>
 #include <fakemeta>
 #include <hamsandwich>
@@ -17,7 +16,7 @@
 #pragma semicolon 1
 
 #define PLUGIN 	"HL Deathrun"
-#define VERSION "1.0"
+#define VERSION "1.1"
 #define AUTHOR 	"rtxa"
 
 // TaskIDs
@@ -120,17 +119,14 @@ enum _:CsWeapons {
 
 new const gBlueWinsSnd[] = "deathrun/w_blue.wav";
 new const gRedWinsSnd[] = "deathrun/w_red.wav";
-new const gDrawSnd[] = "deathrun/3dmstart.wav";
-
-#define DMG_CHANGETEAM 10000.0 // if you are not using Bugfixed and Improved HL Release by Lev, then set it to 900.0
-#define DMG_SPAWN 300.0 // this is the dmg when user spawn close enough to other user
+new const gDrawSnd[] = "deathrun/draw.wav";
 
 #define BLUE_TEAMID 1
 #define RED_TEAMID 2
 
 #define MAX_TEAMNAME_LENGTH 16
 
-#define MAX_SPAWNS 64 // increase it in case the map has got more spawns...
+#define MAX_SPAWNS 64 // increase it in case the mapmap has more spawns than needed...
 
 new gBlueModel[MAX_TEAMNAME_LENGTH];
 new gRedModel[MAX_TEAMNAME_LENGTH];
@@ -146,14 +142,11 @@ new bool:gRoundStarted;
 
 new gFirstRoundTime; // in seconds
 
-// handle
-new gMsgSayText;
-
 public plugin_precache() {
 	// i use this as parameter for change team
 	GetTeamListModel(gBlueModel, gRedModel);
 
-	new file[82];
+	new file[128];
 
 	formatex(file, charsmax(file), "models/player/%s/%s.mdl", gBlueModel, gBlueModel);
 	if (file_exists(file))
@@ -175,20 +168,20 @@ public plugin_precache() {
 public plugin_init() {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 
-	if (get_cvar_num("mp_teamplay") <= 0) {
-		server_print("* El servidor no esta en modo TDM");
-		return PLUGIN_HANDLED;
+	register_dictionary("deathrun.txt");
+
+	if (!get_global_float(GL_teamplay)) {
+		log_amx("Server is not in TDM");
+		return;
 	}
 
-	// cache spawns of blue team
+	// cache only spawns from blue team
 	GetInfoPlayerStart(gBlueSpawns, gNumBlueSpawns);
 
 	if (gNumBlueSpawns <= 0) {
-		server_print("Este mapa no es valido");
-		return PLUGIN_HANDLED;
+		log_amx("This map is not compatible with Deathrun");
+		return;
 	}
-
-	SetPlayerEquip();
 
 	RegisterHam(Ham_TakeDamage, "player", "PlayerPreTakeDamage");
 	RegisterHam(Ham_Spawn, "player", "PlayerSpawn");
@@ -204,30 +197,16 @@ public plugin_init() {
 	register_clcmd("dr_weapons", "CmdGiveWeapons", ADMIN_IMMUNITY);
 	register_clcmd("spectate", "CmdSpectate"); // block spectate
 
-	gMsgSayText = get_user_msgid("SayText");
-	//register_message(gMsgSayText, "MsgSayText"); // block change team msg
-
 	gFirstRoundTime = get_cvar_num("dr_firstround_time");
 	set_task(1.0, "FirstRoundCountdown", TASK_FIRSTROUND, _, _, "b");
-
-	return PLUGIN_CONTINUE;
 }
 
 public FirstRoundCountdown() {
 	gFirstRoundTime--;
-	client_print(0, print_center, "La partida comienza en %i", gFirstRoundTime);
+	client_print(0, print_center, "%l", "ROUND_FIRSTROUND", gFirstRoundTime);
 
 	if (gFirstRoundTime == 0)
 		RoundStart();
-}
-
-// read game_player_equip from pfn_keyvalue, change weapons to counterpart to avoid create own gameplayer_equip and keep compatibility with cs 1.6 maps...
-SetPlayerEquip() {
-	//remove_entity_name("player_weaponstrip");
-	//remove_entity_name("game_player_equip");
-
-	//new ent = create_entity("game_player_equip");
-	//DispatchKeyValue(ent, "weapon_crowbar", "1");
 }
 
 public RoundStart() {
@@ -239,8 +218,7 @@ public RoundStart() {
 	remove_task(TASK_ROUNDEND);
 
 	new players[32], numPlayers, player;
-
-	deathrun_get_players(players, numPlayers);
+	get_players(players, numPlayers);
 
 	if (!numPlayers) {
 		set_task(5.0, "RoundStart", TASK_ROUNDSTART);
@@ -252,55 +230,41 @@ public RoundStart() {
  		if (hl_get_user_team(player) == RED_TEAMID)
  			ChangeTeam(player, BLUE_TEAMID);
  		if (hl_get_user_spectator(player)) {
- 		    deathrun_set_user_spectator(player, false);
+ 		    dr_set_user_spectator(player, false);
  		    TeleportToSpawn(player, gBlueSpawns[random(gNumBlueSpawns)]);
  		    ChangeTeam(player, BLUE_TEAMID);
  		}
-		client_print(player, print_center, "Se requiere dos jugadores para iniciar");
+		client_print(player, print_center, "%l", "ROUND_MINPLAYERS", 2);
 		set_task(5.0, "RoundStart", TASK_ROUNDSTART);
 		return;
 	}
 
 	new randomPlayer = RandomPlayer(players, numPlayers); // choose player to be red team
 
-	// randomize teleports of blue team
+	// randomize teleport locations for blue team
 	SortIntegers(gBlueSpawns, gNumBlueSpawns, Sort_Random);
 
 	for (new i; i < numPlayers; i++) {
 		player = players[i];
 		if (hl_get_user_spectator(player))
-			deathrun_set_user_spectator(player, false);
+			dr_set_user_spectator(player, false);
 		else
 			dr_user_spawn(player);
 			
 		if (player != randomPlayer) {
 			TeleportToSpawn(player, gBlueSpawns[i]);
 			ChangeTeam(player, BLUE_TEAMID, false);
-			hl_client_print_color(player, player, "^x02* Elimina al jugador del equipo rojo atravesando sus trampas");
-			//client_print(player, print_chat, "Elimina al jugador del equipo rojo, evadiendo sus trampas en el camino hasta poder llegar a el");
+			client_print(player, print_chat, "%l", "OBJECTIVE_RUNNERS");
 		}
  	}
  	ChangeTeam(randomPlayer, RED_TEAMID, false);
- 	CheckPlayers(); // check players one time to avoid doing it every changeteam...
+ 	CheckGameStatus(); // check players one time to avoid doing it every changeteam...
 
-	hl_client_print_color(randomPlayer, randomPlayer, "^x02* Elimina al equipo azul activando las trampas desde tu lugar");
-	//client_print(player, print_chat, "* Elimina al equipo azul activando las trampas desde tu lugar");
+	client_print(randomPlayer, print_chat, "%l", "OBJECTIVE_ACTIVATOR");
 
-	RestartButtons(); // red team can't use buttons because they were triggered in last round
-
-	remove_entity_name("weaponbox"); // red team can pick up a weaponbox from last round
+	ResetMap();
 
 	gRoundStarted = true;
-}
-
-stock hl_client_print_color(id, sender, const message[]) {
-	new name[32];
-	get_user_name(sender, name, charsmax(name));
-
-	message_begin(MSG_ONE, gMsgSayText, _, id);
-	write_byte(sender);
-	write_string(fmt("^x02%s %s^n", message, name));
-	message_end();	
 }
 
 public RoundEnd() {
@@ -308,13 +272,13 @@ public RoundEnd() {
 		return;
 
 	if (gNumBlueTeam == 0 && gNumRedTeam > 0) {
-		client_print(0, print_center, "El equipo rojo ha ganado");
+		client_print(0, print_center, "%l", "ROUND_WINACTIVATOR");
 		PlaySound(0, gRedWinsSnd);
 	} else if (gNumRedTeam == 0 && gNumBlueTeam > 0) {
-		client_print(0, print_center, "El equipo azul ha ganado");
+		client_print(0, print_center, "%l", "ROUND_WINRUNNERS");
 		PlaySound(0, gBlueWinsSnd);
 	} else {
-		client_print(0, print_center, "Nadie ha ganado");
+		client_print(0, print_center, "%l", "ROUND_DRAW");
 		PlaySound(0, gDrawSnd);
 	}
 
@@ -323,11 +287,11 @@ public RoundEnd() {
 
 public client_putinserver(id) {
 	set_task(0.1, "SendToSpecPutIn", id); // i use a delay to avoid scoreboard glitchs
-	set_task(0.1, "CheckPlayers", TASK_CHECKGAMESTATUS);
+	set_task(0.1, "CheckGameStatus", TASK_CHECKGAMESTATUS);
 }
 
 public client_remove(id) {
-	set_task(0.1, "CheckPlayers", TASK_CHECKGAMESTATUS);
+	set_task(0.1, "CheckGameStatus", TASK_CHECKGAMESTATUS);
 }
 
 public FwClientKill() {
@@ -336,7 +300,7 @@ public FwClientKill() {
 
 public PlayerPreTakeDamage(victim, inflictor, attacker, Float:damage, damagetype) {
 	// block falldamage of red team to avoid kill himself	
-	if (deathrun_get_user_team(victim) == RED_TEAMID && damagetype & DMG_FALL) {
+	if (hl_get_user_team(victim) == RED_TEAMID && damagetype & DMG_FALL) {
 		return HAM_SUPERCEDE;
 	}
 
@@ -357,7 +321,7 @@ public PlayerSpawn(id) {
 
 public PlayerKilled(victim, attacker) {
 	set_task(3.0, "SendToSpec", victim + TASK_SENDTOSPEC); // send to spec mode after 3s
-	CheckPlayers();
+	CheckGameStatus();
 	return HAM_IGNORED;
 }
 
@@ -365,27 +329,27 @@ stock ChangeTeam(id, teamId, check = true) {
 	hl_set_user_team_ex(id, teamId);
 
 	if (check)
-		CheckPlayers();
+		CheckGameStatus();
 
 	return PLUGIN_HANDLED;
 }
 
-public CheckPlayers() {
-	deathrun_get_team_alives(gNumBlueTeam, BLUE_TEAMID);
-	deathrun_get_team_alives(gNumRedTeam, RED_TEAMID);
+public CheckGameStatus() {
+	gNumBlueTeam = hl_get_team_count(BLUE_TEAMID);
+	gNumRedTeam = hl_get_team_count(RED_TEAMID);
 
 	if (gRoundStarted && (gNumBlueTeam < 1 || gNumRedTeam < 1))
 		set_task(0.5, "RoundEnd", TASK_ROUNDEND);
 }
 
 public SendToSpecPutIn(id) {
-	deathrun_set_user_spectator(id, true);
+	dr_set_user_spectator(id, true);
 }
 
 public SendToSpec(taskid) {
 	new id = taskid - TASK_SENDTOSPEC;
 	if (!is_user_alive(id) || is_user_bot(id))
-		deathrun_set_user_spectator(id, true);
+		dr_set_user_spectator(id, true);
 }
 
 public TeleportToSpawn(id, spawn) {
@@ -417,12 +381,6 @@ public RandomPlayer(players[], numplayers) {
 	return rnd;
 }
 
-public RestartButtons() {
-	new ent;
-	while ((ent = find_ent_by_class(ent, "func_button")) > 0)
-		call_think(ent);
-}
-
 public GetInfoPlayerStart(spawn[], &numspawns) {
 	new entid;
 	while ((spawn[numspawns] = find_ent_by_class(entid, "info_player_start"))) {
@@ -436,13 +394,11 @@ public GetInfoPlayerStart(spawn[], &numspawns) {
 public pfn_keyvalue(entid) {	
 	new classname[32], key[32], value[64];
 	copy_keyvalue(classname, sizeof classname, key, sizeof key, value, sizeof value);
+
 	if (equal(classname, "armoury_entity")) {
 		static Float:origin[3];
 		if (equal(key, "origin")) {
-			new arg[3][12]; // hold parsed origin
-			parse(value, arg[0], charsmax(arg[]), arg[1], charsmax(arg[]), arg[2], charsmax(arg[]));
-			for (new i; i < sizeof arg; i++)
-				origin[i] = str_to_float(arg[i]);
+			StrToVec(value, origin);
 		} else if (equal(key, "item"))
 			SustiteArmouryEnt(origin, str_to_num(value));
 	} else if (equal(classname, "game_player_equip")) {
@@ -474,34 +430,6 @@ public SustiteArmouryEnt(Float:origin[3], item){
 	DispatchSpawn(ent);
 }
 
-/*public SustiteGamePlayerEquip(const csWeapon[], hlWeapon[], size) {
-	static Trie:weaponList;
-	if (!weaponList) {
-		weaponList = TrieCreate();
-		for (new i; i < 0; i++)
-			TrieSetCell(weaponList, CS_WEAPONS[i], i);
-	}
-
-	new classname[32], value;
-	TrieGetCell(weaponList, csWeapon, value);
-
-	switch(value) {
-		case CS_KNIFE: classname = "weapon_crowbar";
-		case CS_USP, CS_GLOCK18: classname = "weapon_9mmhandgun";
-		case CS_TMP, CS_P90, CS_MAC10, CS_MP5NAVY: classname = "weapon_357";
-		case CS_M3, CS_XM1014: classname = "weapon_shotgun";
-		case CS_M4A1, CS_AK47, CS_AUG: classname = "weapon_9mmAR";
-		case CS_AWP, CS_SCOUT, CS_SG552, CS_G3SG1: classname = "weapon_crossbow";
-		case CS_M249: classname = "weapon_rpg";
-		case CS_SMOKEGRENADE: classname = "weapon_handgrenade";
-		case CS_FLASHBANG: classname = "weapon_snark";
-		case CS_HEGRENADE: classname = "weapon_satchel";
-		//case CS_KEVLAR, CS_ASSAULTSUIT: classname = "item_battery";
-	}
-	copy(hlWeapon, size, classname);
-	
-}*/
-
 // This only works inside of pfn_keyvalue forward
 public SustiteGamePlayerEquip(const csWeapon[]) {
 	static Trie:weaponList;
@@ -532,40 +460,8 @@ public SustiteGamePlayerEquip(const csWeapon[]) {
 		default: classname = "weapon_snark";
 	}
 
-	server_print("Key %s; New Key: %s Value %i", csWeapon, classname, value);
+	//server_print("Key %s; New Key: %s Value %i", csWeapon, classname, value);
 	DispatchKeyValue(classname, 1);	
-}
-
-public MsgSayText(msg_id, msg_dest, destid) {
-	new text[192];
-	get_msg_arg_string(2, text, charsmax(text));
-
-	if (text[0] == '*') { 	// if first character is *, then is a server message
-		if (contain(text, "has changed to team") != -1)
-			return PLUGIN_HANDLED;
-		return PLUGIN_CONTINUE;
-	}
-
-	new id = get_msg_arg_int(1);
-	
-	// Change say tags	
-	if (is_user_connected(id)) {
-		new isAdmin = is_user_admin(id);
-		if (is_user_alive(id)) {
-			if (isAdmin)
-				format(text, charsmax(text), "^x02[ADMIN]%s", text); // All
-		} else {
-			if (isAdmin)
-				format(text, charsmax(text), "^x02(MUERTO) [ADMIN]%s", text);
-			else
-				format(text, charsmax(text), "^x02(MUERTO)%s", text);
-		}
-	}
-
-	// Send final message
-	set_msg_arg_string(2, text);
-
-	return PLUGIN_CONTINUE;
 }
 
 public CmdSpectate() {
@@ -576,7 +472,7 @@ public CmdRoundRestart(id, level, cid) {
 	if (!cmd_access(id, level, cid, 0))
 	    return PLUGIN_HANDLED;
 	RoundStart();
-	return PLUGIN_CONTINUE;
+	return PLUGIN_HANDLED;
 }
 
 public CmdRespawnUser(id, level, cid) {
@@ -587,20 +483,21 @@ public CmdRespawnUser(id, level, cid) {
 	read_argv(1, target, charsmax(target));
 
 	new player = cmd_target(id, target, 0);
-	remove_task(player + TASK_SENDTOSPEC);
-	if (is_user_connected(player))
-		if (hl_get_user_spectator(player))
-			hl_set_user_spectator(player, false);
-		else
-			dr_user_spawn(player);
-	else
+
+	if (!is_user_connected(player)) {
 		return PLUGIN_HANDLED;
+	}
 
 	ChangeTeam(id, BLUE_TEAMID);
 
+	if (hl_get_user_spectator(player))
+		hl_set_user_spectator(player, false);
+	else
+		dr_user_spawn(player);
+
 	TeleportToSpawn(player, gBlueSpawns[random(gNumBlueSpawns)]);
 	
-	return PLUGIN_CONTINUE;
+	return PLUGIN_HANDLED;
 }
 
 public CmdGiveWeapons(id, level, cid) {
@@ -618,21 +515,21 @@ public CmdGiveWeapons(id, level, cid) {
 	for (new i; i < 5; i++)
 		give_item(id, "weapon_gauss");
 
-	return PLUGIN_CONTINUE;
+	return PLUGIN_HANDLED;
 }
 
 public CmdArraySpawns(id, level, cid) {
 	if (!cmd_access(id, level, cid, 0))
 	    return PLUGIN_HANDLED;
 	PrintArraySpawn(id);
-	return PLUGIN_CONTINUE;
+	return PLUGIN_HANDLED;
 }
 
 public CmdRoundInfo(id, level, cid) {
 	if (!cmd_access(id, level, cid, 0))
 	    return PLUGIN_HANDLED;
 	PrintRoundInfo(id);
-	return PLUGIN_CONTINUE;
+	return PLUGIN_HANDLED;
 }
 
 public CmdUserInfo(id, level, cid) {
@@ -653,16 +550,17 @@ public CmdUserInfo(id, level, cid) {
 		return PLUGIN_HANDLED;
 	// Mostrar informacion del usuario selecionado
 	PrintUserInfo(id, player);
-	return PLUGIN_CONTINUE;
+	return PLUGIN_HANDLED;
 }
 
 public PrintArraySpawn(id) {
 	for(new i=0; i<32; i++)
 		console_print(id, "%i. blue spawn: %i", i, gBlueSpawns[i]);
+	return PLUGIN_HANDLED;
 }
 
 public PrintRoundInfo(id) {
-	client_print(id, print_chat, "Azul vivos: %i; Rojo vivos: %i; gRoundStarted: %i; gNumBlueSpawns: %i", gNumBlueTeam, gNumRedTeam, gRoundStarted, gNumBlueSpawns);
+	client_print(id, print_chat, "Blue count: %i; Red count: %i; gRoundStarted: %i; gNumBlueSpawns: %i", gNumBlueTeam, gNumRedTeam, gRoundStarted, gNumBlueSpawns);
 }
 
 public PrintUserInfo(caller, target) {
@@ -692,86 +590,20 @@ public PlaySound(id, const sound[]) {
 	client_cmd(id, "spk %s", sound);
 }
 
-stock deathrun_set_user_spectator(client, bool:spectator = true) {
-	if(hl_get_user_spectator(client) == spectator)
-		return;
+stock hl_get_team_count(teamindex) {
+	new players[MAX_PLAYERS], numPlayers;
+	get_players_ex(players, numPlayers, GetPlayers_ExcludeDead);
 
-	if(spectator) {
-		static AllowSpectatorsCvar;
-		if(AllowSpectatorsCvar || (AllowSpectatorsCvar = get_cvar_pointer("allow_spectators"))) {
-			if(!get_pcvar_num(AllowSpectatorsCvar))
-				set_pcvar_num(AllowSpectatorsCvar, 1);
+	new num;
+	for (new i; i < numPlayers; i++)
+		if (hl_get_user_team(players[i]) == teamindex)
+			num++;
 
-			engclient_cmd(client, "spectate");
-		}
-	} else {
-		dr_user_spawn(client);
-
-		set_pev(client, pev_iuser1, 0);
-		set_pev(client, pev_iuser2, 0);
-
-		set_pdata_int(client, OFFSET_HUD, 0);
-
-		// clear message when exit of spectator
- 		client_print(client, print_center, "");
-
-		static szTeam[16];
-		hl_get_user_team(client, szTeam, charsmax(szTeam));
-
-		// this fix when using openag client the scoreboard user colors
-		static Spectator;
-		if(Spectator || (Spectator = get_user_msgid("Spectator"))) {
-			message_begin(MSG_ALL, Spectator);
-			write_byte(client);
-			write_byte(0);
-			message_end();
-		}
-
-		static TeamInfo;
-		if(TeamInfo || (TeamInfo = get_user_msgid("TeamInfo"))) {
-			message_begin(MSG_ALL, TeamInfo);
-			write_byte(client);
-			write_string(szTeam);
-			message_end();
-		}
-	}
+	return num;
 }
 
-stock deathrun_get_players(players[MAX_PLAYERS], &numplayers) {
-	arrayset(players, 0, charsmax(players));
-	get_players(players, numplayers);
-}
-
-stock deathrun_get_team_alives(&teamAlives, teamindex) {
-	teamAlives = 0;
-	for (new id=1; id<=MaxClients; id++)
-		if (is_user_alive(id) && deathrun_get_user_team(id) == teamindex)
-			teamAlives++;
-}
-
-stock deathrun_get_user_team(client, team[] = "", len = 0) {
-	if(!client || client > MaxClients || hl_get_user_spectator(client))
-		return 0;
-
-	static Float: tdm; global_get(glb_teamplay, tdm);
-	if(tdm < 1.0) return 0;
-
-	if(!len) len = 16;
-	get_user_info(client, "model", team, len);
-
-	return __get_team_index(team);
-}
-
-stock dr_user_spawn(client) {
-	remove_task(client + TASK_SENDTOSPEC); // if you dont remove this, he will not respawn
-	
-	if(!hl_strip_user_weapons(client))
-		return;
-
-	set_pev(client, pev_deadflag, DEAD_RESPAWNABLE);
-	dllfunc(DLLFunc_Spawn, client);
-}
-
+/* Set player team by teamid instead of teamname.
+*/
 stock hl_set_user_team_ex(id, teamId) {
 	static entTeamMaster, entPlayerTeam;
 
@@ -785,8 +617,99 @@ stock hl_set_user_team_ex(id, teamId) {
 		DispatchKeyValue(entPlayerTeam, "target", "changeteam");
 	}
 
-	// teamid = 0 (azul) teamid = 1 (rojo), etc...
-	DispatchKeyValue(entTeamMaster, "teamindex", fmt("%i", teamId - 1)); // le resto 1 para que pueda usarlo con las constantes que tengo de teamid 
+	DispatchKeyValue(entTeamMaster, "teamindex", fmt("%i", teamId - 1));
 	
-	ExecuteHamB(Ham_Use, entPlayerTeam, id, 0, 1.0, 0.0);
+	ExecuteHamB(Ham_Use, entPlayerTeam, id, 0, USE_ON, 0.0);
+}
+
+stock dr_set_user_spectator(client, bool:spectator = true) {
+	if (!spectator)
+		remove_task(client + TASK_SENDTOSPEC); // remove task to let him respawn
+
+	hl_set_user_spectator(client, spectator);
+}
+
+stock dr_user_spawn(client) {
+	remove_task(client + TASK_SENDTOSPEC); // if you dont remove this, he will not respawn
+	hl_user_spawn(client);
+}
+
+// the parsed string is in this format "x y z" e.g "128 0 256"
+Float:StrToVec(const string[], Float:vector[3]) {
+	new arg[3][12]; // hold parsed vector
+	parse(string, arg[0], charsmax(arg[]), arg[1], charsmax(arg[]), arg[2], charsmax(arg[]));
+
+	for (new i; i < sizeof arg; i++)
+		vector[i] = str_to_float(arg[i]);
+}
+
+/* ===========================================================================​=============================
+ *         [ Reset Map Functions ]
+ * ===========================================================================​===========================*/
+
+// this will clean entities from previous matchs
+ClearField() {
+	static const fieldEnts[][] = { "bolt", "monster_snark", "monster_satchel", "monster_tripmine", "beam", "weaponbox" };
+
+	for (new i; i < sizeof fieldEnts; i++)
+		remove_entity_name(fieldEnts[i]);
+
+	new ent;
+	while ((ent = find_ent_by_class(ent, "rpg_rocket")))
+		set_pev(ent, pev_dmg, 0);
+
+	ent = 0;
+	while ((ent = find_ent_by_class(ent, "grenade")))
+		set_pev(ent, pev_dmg, 0);
+}
+
+ClearCorpses() {
+	new ent;
+	while ((ent = find_ent_by_class(ent, "bodyque")))
+		set_pev(ent, pev_effects, EF_NODRAW);
+}
+
+ResetChargers() {
+	new classname[32];
+	for (new i; i < global_get(glb_maxEntities); i++) {
+		if (pev_valid(i)) {
+			pev(i, pev_classname, classname, charsmax(classname));
+			if (equal(classname, "func_recharge")) {
+				set_pev(i, pev_frame, 0);
+				set_pev(i, pev_nextthink, 0);
+				set_ent_data(i, "CRecharge", "m_iJuice", 30);
+			} else if (equal(classname, "func_healthcharger")) {
+				set_pev(i, pev_frame, 0);
+				set_pev(i, pev_nextthink, 0);
+				set_ent_data(i, "CWallHealth", "m_iJuice", 75);
+			}
+		}
+	}
+}
+
+// This will respawn all weapons, ammo and items of the map to prepare for a new match (agstart)
+RespawnItems() {
+	new classname[32];
+	for (new i; i < global_get(glb_maxEntities); i++) {
+		if (pev_valid(i)) {
+			pev(i, pev_classname, classname, charsmax(classname));
+			if (contain(classname, "weapon_") != -1 || contain(classname, "ammo_") != -1 || contain(classname, "item_") != -1) {
+				set_pev(i, pev_nextthink, get_gametime());
+			}
+		}
+	}
+}
+
+RestartButtons() {
+	new ent;
+	while ((ent = find_ent_by_class(ent, "func_button")) > 0)
+		call_think(ent);
+}
+
+ResetMap() {
+	ClearField();
+	ClearCorpses();
+	RespawnItems();
+	ResetChargers();
+	RestartButtons();	
 }

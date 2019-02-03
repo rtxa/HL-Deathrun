@@ -1,0 +1,17 @@
+[en]
+ROUND_FIRSTROUND 	= Round starts in %i
+ROUND_MINPLAYERS  	= At least %i players are required^n^nto start a new round
+ROUND_DRAW			= No one has won...
+ROUND_WINRUNNERS	= Blue team wins!
+ROUND_WINACTIVATOR	= Red team wins!
+OBJECTIVE_RUNNERS 	= [Deathrun] Survive to the traps from activator (red team) until the end of the map and then kill him.
+OBJECTIVE_ACTIVATOR = [Deathrun] Kill runners (blue team) triggering the traps at the most opportune moment.
+
+[es]
+ROUND_FIRSTROUND 	= La ronda comienza en %i
+ROUND_MINPLAYERS 	= Se requiere al menos %d jugadores^n^npara empezar una nueva ronda
+ROUND_DRAW			= Nadie ha ganado...
+ROUND_WINRUNNERS	= El equipo azul ha ganado!
+ROUND_WINACTIVATOR	= El equipo rojo ha ganado!
+OBJECTIVE_RUNNERS   = [Deathrun] Sobrevive a las trampas del activador (equipo rojo) hasta llegar al final del mapa, luego eliminalo.
+OBJECTIVE_ACTIVATOR = [Deathrun] Asesina a los corredores (equipo azul) activando las trampas en el momento preciso.
