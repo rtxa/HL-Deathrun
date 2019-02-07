@@ -488,7 +488,7 @@ public CmdRespawnUser(id, level, cid) {
 		return PLUGIN_HANDLED;
 	}
 
-	ChangeTeam(id, BLUE_TEAMID);
+	ChangeTeam(player, BLUE_TEAMID);
 
 	if (hl_get_user_spectator(player))
 		hl_set_user_spectator(player, false);
