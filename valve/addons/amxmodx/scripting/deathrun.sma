@@ -216,9 +216,9 @@ public RoundStart() {
 	remove_task(TASK_FIRSTROUND);
 	remove_task(TASK_ROUNDSTART);
 	remove_task(TASK_ROUNDEND);
-
+	
 	new players[32], numPlayers, player;
-	get_players(players, numPlayers);
+	get_players_ex(players, numPlayers, GetPlayers_ExcludeHLTV);
 
 	if (!numPlayers) {
 		set_task(5.0, "RoundStart", TASK_ROUNDSTART);
