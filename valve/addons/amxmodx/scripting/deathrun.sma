@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 #define PLUGIN 	"HL Deathrun"
-#define VERSION "1.1"
+#define VERSION "1.0"
 #define AUTHOR 	"rtxa"
 
 // TaskIDs
@@ -212,7 +212,7 @@ public RoundStart() {
 	remove_task(TASK_FIRSTROUND);
 	remove_task(TASK_ROUNDSTART);
 	remove_task(TASK_ROUNDEND);
-	
+
 	new players[32], numPlayers, player;
 	get_players_ex(players, numPlayers, GetPlayers_ExcludeHLTV);
 
@@ -246,7 +246,7 @@ public RoundStart() {
 			dr_set_user_spectator(player, false);
 		else
 			dr_user_spawn(player);
-			
+
 		if (player != randomPlayer) {
 			TeleportToSpawn(player, gBlueSpawns[i]);
 			ChangeTeam(player, BLUE_TEAMID, false);
@@ -295,7 +295,7 @@ public FwClientKill() {
 }
 
 public PlayerPreTakeDamage(victim, inflictor, attacker, Float:damage, damagetype) {
-	// block falldamage of red team to avoid kill himself	
+	// block falldamage of red team to avoid kill himself
 	if (hl_get_user_team(victim) == RED_TEAMID && damagetype & DMG_FALL) {
 		return HAM_SUPERCEDE;
 	}
@@ -387,7 +387,7 @@ public GetInfoPlayerStart(spawn[], &numspawns) {
 
 /* Get item and origin of armoury_entity to sustitute it with his counterpart on Half-Life.
  */
-public pfn_keyvalue(entid) {	
+public pfn_keyvalue(entid) {
 	new classname[32], key[32], value[64];
 	copy_keyvalue(classname, sizeof classname, key, sizeof key, value, sizeof value);
 
@@ -457,7 +457,7 @@ public SustiteGamePlayerEquip(const csWeapon[]) {
 	}
 
 	//server_print("Key %s; New Key: %s Value %i", csWeapon, classname, value);
-	DispatchKeyValue(classname, 1);	
+	DispatchKeyValue(classname, 1);
 }
 
 public CmdSpectate() {
@@ -492,7 +492,7 @@ public CmdRespawnUser(id, level, cid) {
 		dr_user_spawn(player);
 
 	TeleportToSpawn(player, gBlueSpawns[random(gNumBlueSpawns)]);
-	
+
 	return PLUGIN_HANDLED;
 }
 
@@ -574,9 +574,9 @@ public PrintUserInfo(caller, target) {
 	client_print(caller, print_chat, "Team: %i; Model: %s; iuser1: %i; iuser2: %i Alive: %i; Deadflag: %i", team, model, iuser1, iuser2, alive, dead);
 }
 
-public GetTeamListModel(team1[MAX_TEAMNAME_LENGTH], team2[MAX_TEAMNAME_LENGTH]) {
+public GetTeamListModel(team1[TEAMNAME_LENGTH], team2[TEAMNAME_LENGTH]) {
 	new teamlist[64];
-	get_pcvar_string(get_cvar_pointer("mp_teamlist"), teamlist, charsmax(teamlist)); 
+	get_pcvar_string(get_cvar_pointer("mp_teamlist"), teamlist, charsmax(teamlist));
 	trim(teamlist);
 	replace_string(teamlist, charsmax(teamlist), ";", " ");
 	parse(teamlist, team1, charsmax(team1), team2, charsmax(team2));
@@ -614,7 +614,7 @@ stock hl_set_user_team_ex(id, teamId) {
 	}
 
 	DispatchKeyValue(entTeamMaster, "teamindex", fmt("%i", teamId - 1));
-	
+
 	ExecuteHamB(Ham_Use, entPlayerTeam, id, 0, USE_ON, 0.0);
 }
 
@@ -707,5 +707,5 @@ ResetMap() {
 	ClearCorpses();
 	RespawnItems();
 	ResetChargers();
-	RestartButtons();	
+	RestartButtons();
 }
