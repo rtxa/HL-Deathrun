@@ -117,19 +117,16 @@ enum _:CsWeapons {
 	CS_P90
 }
 
-new const gBlueWinsSnd[] = "deathrun/w_blue.wav";
-new const gRedWinsSnd[] = "deathrun/w_red.wav";
-new const gDrawSnd[] = "deathrun/draw.wav";
+new const SND_BLUE_WIN[] = "deathrun/w_blue.wav";
+new const SND_RED_WIN[] = "deathrun/w_red.wav";
+new const SND_DRAW[] = "deathrun/draw.wav";
 
 #define BLUE_TEAMID 1
 #define RED_TEAMID 2
 
-#define MAX_TEAMNAME_LENGTH 16
+#define TEAMNAME_LENGTH 16
 
 #define MAX_SPAWNS 64 // increase it in case the mapmap has more spawns than needed...
-
-new gBlueModel[MAX_TEAMNAME_LENGTH];
-new gRedModel[MAX_TEAMNAME_LENGTH];
 
 new gNumBlueTeam;
 new gNumRedTeam;
@@ -143,24 +140,23 @@ new bool:gRoundStarted;
 new gFirstRoundTime; // in seconds
 
 public plugin_precache() {
+	new blue[TEAMNAME_LENGTH], red[TEAMNAME_LENGTH];
 	// i use this as parameter for change team
-	GetTeamListModel(gBlueModel, gRedModel);
+	GetTeamListModel(blue, red);
 
 	new file[128];
 
-	formatex(file, charsmax(file), "models/player/%s/%s.mdl", gBlueModel, gBlueModel);
+	formatex(file, charsmax(file), "models/player/%s/%s.mdl", blue, blue);
 	if (file_exists(file))
 		precache_model(file);
 
-	formatex(file, charsmax(file), "models/player/%s/%s.mdl", gRedModel, gRedModel);
+	formatex(file, charsmax(file), "models/player/%s/%s.mdl", red, red);
 	if (file_exists(file))
 		precache_model(file);
 
-	//precache_model("models/player/droid/droid.mdl");
-
-	precache_sound(gBlueWinsSnd);
-	precache_sound(gRedWinsSnd);
-	precache_sound(gDrawSnd);
+	precache_sound(SND_BLUE_WIN);
+	precache_sound(SND_RED_WIN);
+	precache_sound(SND_DRAW);
 
 	create_cvar("dr_firstround_time", "15");
 }
@@ -273,13 +269,13 @@ public RoundEnd() {
 
 	if (gNumBlueTeam == 0 && gNumRedTeam > 0) {
 		client_print(0, print_center, "%l", "ROUND_WINACTIVATOR");
-		PlaySound(0, gRedWinsSnd);
+		PlaySound(0, SND_RED_WIN);
 	} else if (gNumRedTeam == 0 && gNumBlueTeam > 0) {
 		client_print(0, print_center, "%l", "ROUND_WINRUNNERS");
-		PlaySound(0, gBlueWinsSnd);
+		PlaySound(0, SND_BLUE_WIN);
 	} else {
 		client_print(0, print_center, "%l", "ROUND_DRAW");
-		PlaySound(0, gDrawSnd);
+		PlaySound(0, SND_DRAW);
 	}
 
 	set_task(5.0, "RoundStart", TASK_ROUNDSTART);
@@ -602,7 +598,7 @@ stock hl_get_team_count(teamindex) {
 	return num;
 }
 
-/* Set player team by teamid instead of teamname.
+/* Set player team by passing teamid instead of teamname.
 */
 stock hl_set_user_team_ex(id, teamId) {
 	static entTeamMaster, entPlayerTeam;
