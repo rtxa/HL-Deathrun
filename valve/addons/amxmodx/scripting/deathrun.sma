@@ -170,12 +170,13 @@ public OnGetGameDescription() {
 public plugin_init() {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 
-	register_dictionary("deathrun.txt");
-
 	if (!get_global_float(GL_teamplay)) {
 		log_amx("Server is not in TDM");
+		StopPlugin();
 		return;
 	}
+
+	register_dictionary("deathrun.txt");
 
 	register_forward(FM_GetGameDescription, "OnGetGameDescription");
 
@@ -720,4 +721,11 @@ ResetMap() {
 	RespawnItems();
 	ResetChargers();
 	RestartButtons();
+}
+
+stock StopPlugin() {
+	new pluginName[32];
+	get_plugin(-1, pluginName, sizeof(pluginName));
+	pause("d", pluginName);
+	return;
 }
