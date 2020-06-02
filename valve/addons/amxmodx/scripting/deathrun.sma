@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 #define PLUGIN 	"HL Deathrun"
-#define VERSION "1.0"
+#define VERSION "1.1"
 #define AUTHOR 	"rtxa"
 
 // TaskIDs
@@ -161,6 +161,12 @@ public plugin_precache() {
 	create_cvar("dr_firstround_time", "15");
 }
 
+// Game mode name that should be displayed in server browser
+public OnGetGameDescription() {
+	forward_return(FMV_STRING, PLUGIN + " " + VERSION);
+	return FMRES_SUPERCEDE;
+}
+
 public plugin_init() {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 
@@ -170,6 +176,8 @@ public plugin_init() {
 		log_amx("Server is not in TDM");
 		return;
 	}
+
+	register_forward(FM_GetGameDescription, "OnGetGameDescription");
 
 	// cache only spawns from blue team
 	GetInfoPlayerStart(gBlueSpawns, gNumBlueSpawns);
@@ -427,6 +435,10 @@ public SustiteArmouryEnt(Float:origin[3], item){
 }
 
 // This only works inside of pfn_keyvalue forward
+// Note: There's a bug with deathrun_aqa, problem is bad enginenring in the map
+// Is being called twice, the game_player_equip has not set the 'Use only' option
+// So the multimanager, will give him the weapon on spawn, and the game_player_equio
+// Will do too, maybe we can workaround it, but no time for that..
 public SustiteGamePlayerEquip(const csWeapon[]) {
 	static Trie:weaponList;
 	if (!weaponList) {
