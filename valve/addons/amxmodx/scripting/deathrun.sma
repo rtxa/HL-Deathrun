@@ -380,6 +380,14 @@ public OnMsgSayText(msg_id, msg_dest, receiver) {
 	new text[191];
 	get_msg_arg_string(2, text, charsmax(text));
 	
+	// server message
+	if (text[0] == '*') {
+		if (containi(text, "has changed to team") != -1)
+			return PLUGIN_HANDLED;
+		if (containi(text, "switched to spectator mode") != -1)
+			return PLUGIN_HANDLED;
+	}
+
 	new sender = get_msg_arg_int(1);
 
 	// player message
