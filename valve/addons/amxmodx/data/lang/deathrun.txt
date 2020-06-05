@@ -6,6 +6,8 @@ ROUND_WINRUNNERS	= Blue team wins!
 ROUND_WINACTIVATOR	= Red team wins!
 OBJECTIVE_RUNNERS 	= [Deathrun] Survive the traps from the activator (RED team) until you get to the end of the map, then kill him.
 OBJECTIVE_ACTIVATOR = [Deathrun] Kill the runners (BLUE team) activating the traps at the right moment.
+TAG_DEAD            = (DEAD)
+TAG_ADMIN           = (ADMIN)
 
 [es]
 ROUND_FIRSTROUND 	= La ronda comienza en %i
@@ -15,3 +17,5 @@ ROUND_WINRUNNERS	= El equipo AZUL ha ganado!
 ROUND_WINACTIVATOR	= El equipo ROJO ha ganado!
 OBJECTIVE_RUNNERS   = [Deathrun] Sobrevive a las trampas del activador (equipo ROJO) hasta llegar al final del mapa, luego eliminalo.
 OBJECTIVE_ACTIVATOR = [Deathrun] Asesina a los corredores (equipo AZUL) activando las trampas en el momento justo.
+TAG_DEAD            = (MUERTO)
+TAG_ADMIN           = (ADMIN)

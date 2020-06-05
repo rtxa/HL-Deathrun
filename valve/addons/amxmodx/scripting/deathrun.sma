@@ -1,8 +1,8 @@
 /*
-* Half-Life Deathrun by rtxa
+* Half-Life Deathrun by rtxA
 *
 * To do:
-*	Restart func_door_rotating, func_breakeable, etc... Requires modify gamedll
+*	Restart func_door_rotating, func_breakeable, etc... Requires modify gamedll (not true :))
 */
 
 #include <amxmodx>
@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 #define PLUGIN 	"HL Deathrun"
-#define VERSION "1.1"
+#define VERSION "1.2"
 #define AUTHOR 	"rtxa"
 
 // TaskIDs
@@ -179,6 +179,8 @@ public plugin_init() {
 	register_dictionary("deathrun.txt");
 
 	register_forward(FM_GetGameDescription, "OnGetGameDescription");
+
+	register_message(get_user_msgid("SayText"), "OnMsgSayText");
 
 	// cache only spawns from blue team
 	GetInfoPlayerStart(gBlueSpawns, gNumBlueSpawns);
@@ -372,6 +374,25 @@ public TeleportToSpawn(id, spawn) {
 	entity_set_origin(id, origin);
 	set_pev(id, pev_angles, angle);
 	set_pev(id, pev_fixangle, 1);
+}
+
+public OnMsgSayText(msg_id, msg_dest, receiver) {
+	new text[191];
+	get_msg_arg_string(2, text, charsmax(text));
+	
+	new sender = get_msg_arg_int(1);
+
+	// player message
+	if (text[0] == 2) {
+		if (!is_user_alive(sender)) {
+			SetGlobalTransTarget(receiver);
+			replace(text, charsmax(text), "^x02", fmt("%c%l ", 2, "TAG_DEAD"));
+		}
+	}
+
+	set_msg_arg_string(2, text);
+
+	return PLUGIN_CONTINUE;
 }
 
 public RandomPlayer(players[], numplayers) {
