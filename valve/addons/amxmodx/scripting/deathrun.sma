@@ -181,6 +181,7 @@ public plugin_init() {
 	register_forward(FM_GetGameDescription, "OnGetGameDescription");
 
 	register_message(get_user_msgid("SayText"), "OnMsgSayText");
+	register_message(get_user_msgid("TextMsg"), "OnMsgTextMsg");
 
 	// cache only spawns from blue team
 	GetInfoPlayerStart(gBlueSpawns, gNumBlueSpawns);
@@ -376,17 +377,19 @@ public TeleportToSpawn(id, spawn) {
 	set_pev(id, pev_fixangle, 1);
 }
 
-public OnMsgSayText(msg_id, msg_dest, receiver) {
+public OnMsgTextMsg(msg_id, msg_dest, receiver) {
 	new text[191];
 	get_msg_arg_string(2, text, charsmax(text));
 	
-	// server message
-	if (text[0] == '*') {
-		if (containi(text, "has changed to team") != -1)
-			return PLUGIN_HANDLED;
-		if (containi(text, "switched to spectator mode") != -1)
-			return PLUGIN_HANDLED;
-	}
+	if (containi(text, "switched to spectator mode") != -1)
+		return PLUGIN_HANDLED;
+
+	return PLUGIN_CONTINUE;
+}
+
+public OnMsgSayText(msg_id, msg_dest, receiver) {
+	new text[191];
+	get_msg_arg_string(2, text, charsmax(text));
 
 	new sender = get_msg_arg_int(1);
 
