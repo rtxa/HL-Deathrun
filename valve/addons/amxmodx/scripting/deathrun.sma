@@ -729,40 +729,7 @@ ResetMap() {
 	RespawnItems();
 
 	// HL Restore Map API
-	hl_restore_button(.all = true);
-	hl_restore_rot_button(.all = true);
-	hl_restore_health_charger(.all = true);
-	hl_restore_armor_charger(.all = true);
-	hl_restore_breakable(.all = true);
-	hl_restore_pushable(.all = true);
-	hl_restore_door(.all = true);
-	hl_restore_rot_door(.all = true);
-	hl_restore_train(.all = true);
-	hl_restore_tracktrain(.all = true);
-	hl_restore_trigger_auto(.all = true);
-	hl_restore_trigger_once(.all = true);
-	hl_restore_trigger_push(.all = true);
-	hl_restore_multi_manager(.all = true);
-	hl_restore_func_rotating(.all = true);
-	hl_restore_func_wall_toggle(.all = true);
-	
-	// TO DO:
-	//hl_restore_ambient_generic (barbie barbie girl)
-
-	// All of this in restore_enviroment.sma	
-	//hl_restore_env_laser
-	//hl_restore_env_beam
-	//hl_restore_env_explosion
-	//hl_restore_env_render
-
-	//hl_restore_water (just another func_door)
-	//hl_restore_lights
-	//hl_restore_multisource
-	//hl_restore_trigger_hurt (it's removed with Fire Once)
-	//hl_restore_items (with option to restore to original location)
-	//hl_restore_momentary_door
-	//hl_restore_momentary_rot_button
-	//hl_restore_pendulum
+	hl_restore_all();
 }
 
 stock StopPlugin() {
