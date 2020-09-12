@@ -170,7 +170,7 @@ public OnGetGameDescription() {
 public plugin_init() {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 
-	if (!get_global_float(GL_teamplay)) {
+	if (get_cvar_num("mp_teamplay") <= 0) {
 		log_amx("Server is not in TDM");
 		StopPlugin();
 		return;
