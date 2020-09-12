@@ -184,7 +184,7 @@ public plugin_init() {
 	register_message(get_user_msgid("TextMsg"), "OnMsgTextMsg");
 
 	// cache only spawns from blue team
-	GetInfoPlayerStart(gBlueSpawns, gNumBlueSpawns);
+	GetBlueTeamSpawns(gBlueSpawns, sizeof gBlueSpawns, gNumBlueSpawns);
 
 	if (gNumBlueSpawns <= 0) {
 		log_amx("This map is not compatible with Deathrun");
@@ -418,11 +418,12 @@ public RandomPlayer(players[], numplayers) {
 	return rnd;
 }
 
-public GetInfoPlayerStart(spawn[], &numspawns) {
+public GetBlueTeamSpawns(spawn[], size, &numspawns) {
 	new entid;
-	while ((spawn[numspawns] = find_ent_by_class(entid, "info_player_start"))) {
-		entid = spawn[numspawns];
-		numspawns++;
+	while ((entid = find_ent_by_class(entid, "info_player_start"))) {
+		if (numspawns >= size)
+			break;
+		spawn[numspawns++] = entid;
 	}
 }
 
@@ -595,7 +596,7 @@ public CmdUserInfo(id, level, cid) {
 }
 
 public PrintArraySpawn(id) {
-	for(new i=0; i<32; i++)
+	for(new i; i < sizeof gBlueSpawns; i++)
 		console_print(id, "%i. blue spawn: %i", i, gBlueSpawns[i]);
 	return PLUGIN_HANDLED;
 }
