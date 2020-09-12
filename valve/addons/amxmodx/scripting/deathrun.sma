@@ -16,7 +16,7 @@
 #pragma semicolon 1
 
 #define PLUGIN 	"HL Deathrun"
-#define VERSION "1.2"
+#define VERSION "1.3"
 #define AUTHOR 	"rtxa"
 
 // TaskIDs
